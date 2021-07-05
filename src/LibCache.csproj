@@ -6,14 +6,15 @@
     <Title>LibCache</Title>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>Cinling.LibCache</PackageId>
+    <RootNamespace>Cinling.LibCache</RootNamespace>
     <Authors>Cinling</Authors>
   </PropertyGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="./../../dotnet-lib/src/Lib.csproj" />
+  </ItemGroup>
 
 <!--  <ItemGroup>-->
 <!--    <PackageReference Include="Cinling.Lib" Version="0.0.3-alpha.3" />-->
 <!--  </ItemGroup>-->
-  
-  <ItemGroup>
-    <ProjectReference Include="../../Lib/src/Lib.csproj"/>
-  </ItemGroup>
 </Project>

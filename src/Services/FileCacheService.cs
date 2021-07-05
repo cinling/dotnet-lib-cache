@@ -1,46 +1,36 @@
 ﻿using System;
-using System.Timers;
-using Cinling.Lib.Utils;
-using LibCache.Interfaces;
-using LibCache.Structs.Cos;
+using System.IO;
+using System.Threading;
+using Cinling.Lib.Exceptions;
+using Cinling.Lib.Helpers;
+using Cinling.LibCache.Interfaces;
+using Cinling.LibCache.Options;
+using Cinling.LibCache.Structs.Vos;
 
-namespace LibCache.Services {
-    
+namespace Cinling.LibCache.Services {
+
     /// <summary>
     /// 
     /// </summary>
-    public class FileCacheService : ICacheService {
+    public class FileCacheService : ICacheService, IDisposable {
         /// <summary>
         /// 
         /// </summary>
-        private readonly FileCacheServiceCo co = new();
+        private readonly FileCacheServiceOptions options;
         /// <summary>
-        /// 
+        /// Operate write lock. Methods that will be locked: Set(), Del(), Free(), Clear() 
+        /// 操作写锁。会上锁的方法：Set()、Del()、Free()、Clear()
         /// </summary>
-        private Timer freeTimer;
-
-        public FileCacheService() {
-            reload();
-        }
-
-        public void reload() {
-            if (freeTimer != null) {
-                freeTimer.Enabled = false;
-                freeTimer.Stop();
-                freeTimer = null;
-            }
-
-            freeTimer = new Timer {Enabled = true, Interval = co.freeSpan.Milliseconds};
-            freeTimer.Start();
-            freeTimer.Elapsed += timer_free;
-        }
+        private readonly Mutex writeMutex = new();
+        // private Timer freeTimer;
 
         /// <summary>
         /// 
         /// </summary>
-        /// <returns></returns>
-        public FileCacheServiceCo getCo() {
-            return co;
+        /// <param name="options"></param>
+        public FileCacheService(FileCacheServiceOptions options) {
+            this.options = options;
+            CheckOptions();
         }
         
         /// <summary>
@@ -48,47 +38,25 @@ namespace LibCache.Services {
         /// </summary>
         /// <param name="key"></param>
         /// <param name="value"></param>
-        /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
-        public string set(string key, string value) {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="key"></param>
-        /// <param name="value"></param>
         /// <param name="span"></param>
         /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
-        public string set(string key, string value, TimeSpan span) {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="key"></param>
-        /// <param name="value"></param>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
-        public T set<T>(string key, T value) {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="key"></param>
-        /// <param name="value"></param>
-        /// <param name="span"></param>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
-        public T set<T>(string key, T value, TimeSpan span) {
-            throw new NotImplementedException();
+        public string Set(string key, string value, TimeSpan? span) {
+            var filename = GetSaveFilename(key);
+            long expired = 0;
+            if (span != null) {
+                expired = (long)(TimeHelper.UnixTimeSeconds() + span.Value.TotalSeconds);
+            }
+            var cacheVo = new FileCacheVo {
+                E = expired,
+                C = value
+            };
+            writeMutex.WaitOne();
+            var fileWriter = File.CreateText(filename);
+            fileWriter.Write(cacheVo.ToJson());
+            fileWriter.Flush();
+            fileWriter.Close();
+            writeMutex.ReleaseMutex();
+            return value;
         }
 
         /// <summary>
@@ -97,7 +65,7 @@ namespace LibCache.Services {
         /// <param name="key"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        public string get(string key) {
+        public string Get(string key) {
             throw new NotImplementedException();
         }
 
@@ -105,48 +73,43 @@ namespace LibCache.Services {
         /// 
         /// </summary>
         /// <param name="key"></param>
-        /// <typeparam name="T"></typeparam>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        public T get<T>(string key) {
+        public string Del(string key) {
+            writeMutex.WaitOne();
+            writeMutex.ReleaseMutex();
             throw new NotImplementedException();
         }
 
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="key"></param>
         /// <exception cref="NotImplementedException"></exception>
-        public void del(string key) {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Delete files that have timed out
-        /// 删除超时的缓存文件
-        /// </summary>
-        /// <exception cref="NotImplementedException"></exception>
-        public void free() {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Delete all cache
-        /// 删除所有缓存
-        /// </summary>
-        /// <exception cref="NotImplementedException"></exception>
-        public void clear() {
+        public void Free() {
+            writeMutex.WaitOne();
+            writeMutex.ReleaseMutex();
             throw new NotImplementedException();
         }
 
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void timer_free(object sender, ElapsedEventArgs e) {
-            free();
+        /// <exception cref="NotImplementedException"></exception>
+        public void Clear() {
+            writeMutex.WaitOne();
+            writeMutex.ReleaseMutex();
+            throw new NotImplementedException();
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public void Dispose() {
+            // freeTimer?.Close();
+            // Free();
+        }
+
+
 
         /// <summary>
         /// Get the path where the cache file is saved
@@ -154,14 +117,12 @@ namespace LibCache.Services {
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        protected string getSaveFilename(string key) {
-            var sha1 = EncryptUtil.sha1(key);
-            var maxOffset = sha1.Length - co.pathUnitLen;
-
-
+        protected string GetSaveFilename(string key) {
+            var sha1 = EncryptHelper.Sha1(options.Salt + key);
+            var maxOffset = sha1.Length - options.PathUnitLen;
             var cacheFilename = "";
-            for (int i = 0; i < co.pathDeeps; i++) {
-                var offset = i * co.pathUnitLen;
+            for (var i = 0; i < options.PathDeeps; i++) {
+                var offset = i * options.PathUnitLen;
                 if (offset > maxOffset) {
                     break;
                 }
@@ -169,10 +130,20 @@ namespace LibCache.Services {
                 if (cacheFilename != "") {
                     cacheFilename += "/";
                 }
-
-                cacheFilename += sha1.Substring(offset, co.pathUnitLen);
+        
+                cacheFilename += sha1.Substring(offset, options.PathUnitLen);
             }
-            return co.savePath + "/" + cacheFilename + ".cache";
+            var path = options.SavePath + "/" + cacheFilename;
+            if (!Directory.Exists(path)) {
+                Directory.CreateDirectory(path);
+            }
+            return path +  "/" + sha1 + ".cache";
+        }
+
+        protected void CheckOptions() {
+            if (options.PathDeeps * options.PathUnitLen > 32) {
+                throw new BaseLibException("[options.PathDeeps * options.PathUnitLen] cannot greater then 32");
+            }
         }
     }
 }
