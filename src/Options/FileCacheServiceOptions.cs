@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Cinling.Lib.Interfaces;
 
 namespace Cinling.LibCache.Options {
@@ -12,7 +13,7 @@ namespace Cinling.LibCache.Options {
         /// Default save path for caching file
         /// 缓存文件保存路径
         /// </summary>
-        public string SavePath { get; set; } = "./runtime/cin-cache";
+        public string SavePath { get; set; } = Directory.GetCurrentDirectory() + "/runtime/cin-cache";
         
         /// <summary>
         /// Caching filename salt

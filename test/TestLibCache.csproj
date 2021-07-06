@@ -19,4 +19,14 @@
   <ItemGroup>
     <ProjectReference Include="../src/LibCache.csproj" />
   </ItemGroup>
+
+
+  <ItemGroup>
+    <Content Include="bin\Debug\net5.0\runtime\cin-cache\FC\F3\B6\E2\FCF3B6E28606CD131CF335155A60594BD50D75B5.cache" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <Folder Include="bin\Debug\net5.0\runtime\cin-cache\FC\F3\B6\E2" />
+  </ItemGroup>
 </Project>

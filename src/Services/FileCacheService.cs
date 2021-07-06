@@ -6,6 +6,7 @@ using Cinling.Lib.Helpers;
 using Cinling.LibCache.Interfaces;
 using Cinling.LibCache.Options;
 using Cinling.LibCache.Structs.Vos;
+using Microsoft.Extensions.Options;
 
 namespace Cinling.LibCache.Services {
 
@@ -27,9 +28,9 @@ namespace Cinling.LibCache.Services {
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="options"></param>
-        public FileCacheService(FileCacheServiceOptions options) {
-            this.options = options;
+        /// <param name="iOptions"></param>
+        public FileCacheService(IOptions<FileCacheServiceOptions> iOptions) {
+            options = iOptions.Value;
             CheckOptions();
         }
         

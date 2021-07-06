@@ -11,7 +11,7 @@
   </PropertyGroup>
   
   <ItemGroup>
-    <ProjectReference Include="./../../dotnet-lib/src/Lib.csproj" />
+    <ProjectReference Include="../../dotnet-lib/src/Lib.csproj" />
   </ItemGroup>
 
 <!--  <ItemGroup>-->
