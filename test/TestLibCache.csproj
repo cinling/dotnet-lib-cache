@@ -27,6 +27,7 @@
 
 
   <ItemGroup>
+    <Folder Include="bin\Debug\net5.0\runtime" />
     <Folder Include="bin\Debug\net5.0\runtime\cin-cache\FC\F3\B6\E2" />
   </ItemGroup>
 </Project>

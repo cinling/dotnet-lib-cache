@@ -43,7 +43,7 @@ namespace Cinling.LibCache.Services {
         /// <returns></returns>
         public string Set(string key, string value, TimeSpan? span) {
             var filename = GetSaveFilename(key);
-            long expired = 0;
+            long expired = -1;
             if (span != null) {
                 expired = (long)(TimeHelper.UnixTimeSeconds() + span.Value.TotalSeconds);
             }
@@ -67,7 +67,17 @@ namespace Cinling.LibCache.Services {
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
         public string Get(string key) {
-            throw new NotImplementedException();
+            var filename = GetSaveFilename(key);
+            if (!File.Exists(filename)) {
+                return "";
+            }
+            var content = File.ReadAllText(filename);
+            var cacheVo = GetFileCacheVoByContent(content);
+            if (cacheVo != null && (cacheVo.E >= TimeHelper.UnixTimeSeconds() || cacheVo.E == -1)) {
+                return cacheVo.C;
+            }
+            // Del(key);
+            return "";
         }
 
         /// <summary>
@@ -77,9 +87,19 @@ namespace Cinling.LibCache.Services {
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
         public string Del(string key) {
+            var filename = GetSaveFilename(key);
+            if (!File.Exists(filename)) {
+                return "";
+            }
+            var content = File.ReadAllText(filename);
+            var cacheVo = GetFileCacheVoByContent(content);
+            
+            // 删除文件
             writeMutex.WaitOne();
+            File.Delete(filename);
             writeMutex.ReleaseMutex();
-            throw new NotImplementedException();
+
+            return cacheVo.C;
         }
 
         /// <summary>
@@ -109,9 +129,7 @@ namespace Cinling.LibCache.Services {
             // freeTimer?.Close();
             // Free();
         }
-
-
-
+        
         /// <summary>
         /// Get the path where the cache file is saved
         /// 获取缓存文件保存的路径
@@ -141,10 +159,28 @@ namespace Cinling.LibCache.Services {
             return path +  "/" + sha1 + ".cache";
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <exception cref="BaseLibException"></exception>
         protected void CheckOptions() {
             if (options.PathDeeps * options.PathUnitLen > 32) {
                 throw new BaseLibException("[options.PathDeeps * options.PathUnitLen] cannot greater then 32");
             }
+        }
+
+        /// <summary>
+        /// 通过文件数据加载缓存数据
+        /// </summary>
+        /// <param name="content"></param>
+        /// <returns></returns>
+        protected FileCacheVo GetFileCacheVoByContent(string content) {
+            if (content == "") {
+                return null;
+            }
+            var vo = new FileCacheVo();
+            vo.SetByJson(content);
+            return vo;
         }
     }
 }

@@ -17,8 +17,11 @@ namespace TestLibCache.Services {
         }
 
         [Test]
-        public void Set() {
-            cacheSrv.Set("abc", "abc");
+        public void SetAndGet() {
+            const string key = "FileCacheServiceTest.Get";
+            const string value = "112233";
+            cacheSrv.Set(key, value);
+            Assert.AreEqual(value, cacheSrv.Get(key));
         }
     }
 }

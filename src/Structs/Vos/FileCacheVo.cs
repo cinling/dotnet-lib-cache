@@ -13,6 +13,6 @@ namespace Cinling.LibCache.Structs.Vos {
         /// <summary>
         /// Content
         /// </summary>
-        public object C { get; set; }
+        public string C { get; set; }
     }
 }
